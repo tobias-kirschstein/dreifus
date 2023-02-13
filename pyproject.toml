@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dreifus"
+version = "0.0.1"
+description = "dreifus lifts your 3D camera experience and facilitates computer vision applications"
+authors = [
+    { name = "Tobias Kirschstein", email = "tobias.kirschstein@gmail.com" },
+]
+readme = "README.md"
+license = { text = "Apache 2.0" }
+requires-python = ">=3.8.0"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+urls = { Documentation = "<<<ENTER_LINK_TO_DOCUMENTATION>>>" }
+# Main dependencies
+dependencies = [
+    "opencv-python~=4.6",
+    "numpy~=1.24",
+    "scipy~=1.10",
+    "torch~=1.13"
+
+]
+
+[project.optional-dependencies]
+# Development packages, install via dreifus[dev]
+dev = [
+]
+
+[project.scripts]
+# E.g., ns-download-data = "scripts.downloads.download_data:entrypoint"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["dreifus*"]  # Keep the '*', otherwise submodules are not found
