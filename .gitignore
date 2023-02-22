@@ -9,3 +9,4 @@ _pycache__
 # build artifacts
 *.egg-info
 /docs/build/
+dist

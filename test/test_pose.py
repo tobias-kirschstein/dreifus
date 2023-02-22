@@ -6,6 +6,7 @@ import torch
 from numpy.ma.testutils import assert_array_almost_equal, assert_array_equal
 from scipy.spatial.transform import Rotation as R
 
+from dreifus.camera import CameraCoordinateConvention, PoseType
 from dreifus.matrix.intrinsics_numpy import Intrinsics
 from dreifus.matrix.intrinsics_torch import TorchIntrinsics
 from dreifus.matrix.pose_numpy import Pose
@@ -56,8 +57,13 @@ class PoseTest(TestCase):
 
         pose_other = cls()
 
+        # pose is CAM_2_WORLD due to invert()
         pose_l = pose @ pose_other
-        pose_r = pose_other @ pose
+        pose_r = pose_other.invert() @ pose.invert()
+
+        with self.assertRaises(ValueError):
+            # Should not work as pose_other is WORLD_2_CAM and pose is CAM_2_WORLD. WORLD -> WORLD doesn't exist
+            pose_other @ pose
 
         self.assertIsInstance(pose_l, cls)
         self.assertIsInstance(pose_r, cls)
@@ -72,6 +78,16 @@ class PoseTest(TestCase):
 
         self.assertNotIsInstance(pose_l, cls)
         self.assertNotIsInstance(pose_r, cls)
+
+        pose = Pose(camera_coordinate_convention=CameraCoordinateConvention.DIRECT_X, pose_type=PoseType.CAM_2_WORLD)
+        pose_copy = pose.copy()
+
+        self.assertEqual(pose.camera_coordinate_convention, pose_copy.camera_coordinate_convention)
+        self.assertEqual(pose.pose_type, pose_copy.pose_type)
+
+        pose_change = pose.change_camera_coordinate_convention(CameraCoordinateConvention.OPEN_CV)
+        # Changing the camera coordinate convention should affect some of the entries in the matrix
+        self.assertFalse((pose == pose_change).all())
 
     def test_pose(self):
         self._test_pose(Pose)

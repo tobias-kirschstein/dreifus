@@ -9,6 +9,7 @@ Vec3Type = Union[Tuple[float, float, float], np.ndarray, List[float], torch.Tens
 Vec3TypeX = Union[float, Vec3Type]  # Can be either the first coordinate ('x') or a full vector
 FloatType = Union[float, np.ndarray]  # Can be single element array (as a result of a numpy operation)
 
+
 # ==========================================================
 # Helper methods for dealing with heterogeneous input types
 # ==========================================================

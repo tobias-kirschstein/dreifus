@@ -5,17 +5,42 @@ import numpy as np
 import torch
 from scipy.spatial.transform import Rotation as R
 
+from dreifus.camera import CameraCoordinateConvention, PoseType
 from dreifus.matrix.pose_base import is_rotation_matrix
 from dreifus.vector.vector_base import Vec3TypeX, FloatType, unpack_3d_params, Vec3Type
 from dreifus.vector.vector_numpy import Vec3, Vec4
 
 
 class Pose(np.ndarray):
+    camera_coordinate_convention: CameraCoordinateConvention
+    pose_type: PoseType
 
     def __new__(cls,
                 matrix_or_rotation: Union[np.ndarray, List] = np.eye(4),
-                translation: Optional[Vec3Type] = None):
+                translation: Optional[Vec3Type] = None,
+                camera_coordinate_convention: CameraCoordinateConvention = CameraCoordinateConvention.OPEN_CV,
+                pose_type: PoseType = PoseType.WORLD_2_CAM):
+        """
+        Per default, Poses are assumed to be WORLD_2_CAM poses that transform world coordinates into an OPEN_CV
+        camera space.
+
+        Parameters
+        ----------
+            matrix_or_rotation:
+                Either a full 4x4 affine transform matrix or a 3x3 rotation matrix
+            translation:
+                If `matrix_or_rotation` was only a 3x3 rotation matrix, ´translation` can be specified as a 3x1 vector
+            camera_coordinate_convention:
+                Indicates which coordinate convention is used for the camera space that this pose matrix maps into
+            pose_type:
+                Indicates whether this pose maps from WORLD -> CAM or CAM -> WORLD (inverse)
+        """
+
         pose = super().__new__(cls, (4, 4), dtype=np.float32)
+
+        pose.camera_coordinate_convention = camera_coordinate_convention
+        pose.pose_type = pose_type
+
         if not isinstance(matrix_or_rotation, np.ndarray):
             matrix_or_rotation = np.asarray(matrix_or_rotation)
 
@@ -52,12 +77,25 @@ class Pose(np.ndarray):
         return pose
 
     @staticmethod
-    def from_euler(euler_angles: Vec3Type, translation: Vec3Type = Vec3(), euler_mode: str = 'XYZ') -> 'Pose':
-        return Pose(R.from_euler(euler_mode, euler_angles).as_matrix(), translation)
+    def from_euler(euler_angles: Vec3Type,
+                   translation: Vec3Type = Vec3(),
+                   euler_mode: str = 'XYZ',
+                   camera_coordinate_convention: CameraCoordinateConvention = CameraCoordinateConvention.OPEN_CV,
+                   pose_type: PoseType = PoseType.WORLD_2_CAM) -> 'Pose':
+        return Pose(R.from_euler(euler_mode, euler_angles).as_matrix(),
+                    translation,
+                    camera_coordinate_convention=camera_coordinate_convention,
+                    pose_type=pose_type)
 
     @staticmethod
-    def from_rodriguez(rodriguez_vector: Vec3Type, translation: Vec3Type = Vec3()) -> 'Pose':
-        return Pose(cv2.Rodrigues(rodriguez_vector)[0], translation)
+    def from_rodriguez(rodriguez_vector: Vec3Type,
+                       translation: Vec3Type = Vec3(),
+                       camera_coordinate_convention: CameraCoordinateConvention = CameraCoordinateConvention.OPEN_CV,
+                       pose_type: PoseType = PoseType.WORLD_2_CAM) -> 'Pose':
+        return Pose(cv2.Rodrigues(rodriguez_vector)[0],
+                    translation,
+                    camera_coordinate_convention=camera_coordinate_convention,
+                    pose_type=pose_type)
 
     def get_rotation_matrix(self) -> np.ndarray:
         return self[:3, :3]
@@ -118,7 +156,10 @@ class Pose(np.ndarray):
     def invert(self) -> 'Pose':
         inverted_rotation = self.get_rotation_matrix().T
         inverted_translation = -inverted_rotation @ self.get_translation()
-        inverted_pose = Pose(inverted_rotation, inverted_translation)
+        inverted_pose = Pose(inverted_rotation,
+                             inverted_translation,
+                             camera_coordinate_convention=self.camera_coordinate_convention,
+                             pose_type=self.pose_type.invert())
         return inverted_pose
 
     def negate_orientation_axis(self, axis: int):
@@ -174,11 +215,30 @@ class Pose(np.ndarray):
         # Negates / Flips rows
         self[:, :] = axis_switcher @ self
 
+    def change_camera_coordinate_convention(self, new_camera_coordinate_convention: CameraCoordinateConvention) -> 'Pose':
+        current_ccc = self.camera_coordinate_convention
+
+        pose = self.copy()
+
+        if current_ccc.x_direction != new_camera_coordinate_convention.x_direction:
+            pose.negate_orientation_axis(0)
+
+        if current_ccc.y_direction != new_camera_coordinate_convention.y_direction:
+            pose.negate_orientation_axis(1)
+
+        if current_ccc.z_direction != new_camera_coordinate_convention.z_direction:
+            pose.negate_orientation_axis(2)
+
+        pose.camera_coordinate_convention = new_camera_coordinate_convention
+
+        return pose
+
     def get_look_direction(self) -> 'Vec3':
         # Assumes the current pose is cam2world
         # Assigns meaning to the coordinate axes. Hence, the coordinate system convention is important
         # Assumes an OpenCV camera coordinate system convention (x -> right, y -> down, z -> forward/look)
 
+        assert self.pose_type == PoseType.CAM_2_WORLD
         look_direction = self[:3, 2]
 
         return look_direction
@@ -187,6 +247,8 @@ class Pose(np.ndarray):
         # Assumes the current pose is cam2world
         # Assigns meaning to the coordinate axes. Hence, the coordinate system convention is important
         # Assumes an OpenCV camera coordinate system convention (x -> right, y -> down, z -> forward)
+
+        assert self.pose_type == PoseType.CAM_2_WORLD
         up_direction = -self[:3, 1]
 
         return up_direction
@@ -197,6 +259,8 @@ class Pose(np.ndarray):
 
         # Poses are always assumed to be cam2world
         # That way the translation part of the pose matrix is the location of the object in world space
+
+        assert self.pose_type == PoseType.CAM_2_WORLD
 
         eye = self.get_translation()
         z_axis = (at - eye).normalize()  # Assumes z-axis is forward
@@ -214,13 +278,26 @@ class Pose(np.ndarray):
 
     def __rmatmul__(self, other):
         if isinstance(other, Pose):
-            return super(Pose, self).__rmatmul__(other)
+            pose = super(Pose, self).__rmatmul__(other)
+            pose.camera_coordinate_convention = self.camera_coordinate_convention
+            pose.pose_type = self.pose_type @ other.pose_type
+            return pose
         else:
             return other @ np.array(self)
 
     def __matmul__(self, other):
         # TODO: figure out why numpy operations automatically cast to Pose again
         if isinstance(other, Pose):
-            return super(Pose, self).__matmul__(other)
+            pose = super(Pose, self).__matmul__(other)
+            pose.camera_coordinate_convention = self.camera_coordinate_convention
+            pose.pose_type = self.pose_type @ other.pose_type
+            return pose
         else:
             return np.array(self) @ other
+
+    def copy(self, order='C') -> 'Pose':
+        pose = super(Pose, self).copy(order=order)
+        pose.camera_coordinate_convention = self.camera_coordinate_convention
+        pose.pose_type = self.pose_type
+
+        return pose
