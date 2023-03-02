@@ -1,3 +1,4 @@
+import math
 from enum import Enum, auto
 
 from dreifus.vector import Vec3
@@ -124,6 +125,20 @@ class CameraCoordinateConvention(Enum):
                  f"\t up -> {self.up_direction.axis_name()}\n" \
                  f"\t forward -> {self.forward_direction.axis_name()}\n"
         return string
+
+
+def focal_length_to_fov(focal_length: float, image_size: float):
+    """
+    Parameters
+    ----------
+        focal_length:
+            focal length (x or y) in pixels or physical millimeters
+        image_size:
+            width (if focal length defines x) or height of the image plane in pixels or physical millimeters.
+            focal_length and image_size have to be both pixels or both millimeters
+    """
+
+    return 2 * math.atan(image_size / (2 * focal_length))
 
 
 if __name__ == '__main__':

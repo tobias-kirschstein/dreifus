@@ -2,7 +2,6 @@ from typing import Optional, Union, List
 
 import cv2
 import numpy as np
-import torch
 from scipy.spatial.transform import Rotation as R
 
 from dreifus.camera import CameraCoordinateConvention, PoseType
@@ -301,3 +300,17 @@ class Pose(np.ndarray):
         pose.pose_type = self.pose_type
 
         return pose
+
+    def __repr__(self):
+        representation = super(Pose, self).__repr__()
+        representation = f"{representation}\n" \
+                         f" > camera_coordinate_convention: {self.camera_coordinate_convention.name}\n" \
+                         f" > pose_type: {self.pose_type.name}"
+        return representation
+
+    def __str__(self):
+        string = super(Pose, self).__str__()
+        string = f"{string}\n" \
+                 f" > camera_coordinate_convention: {self.camera_coordinate_convention.name}\n" \
+                 f" > pose_type: {self.pose_type.name}"
+        return string

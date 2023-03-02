@@ -9,6 +9,7 @@ import pyvista as pv
 from dreifus.camera import PoseType, CameraCoordinateConvention
 from dreifus.matrix import Pose, Intrinsics
 from dreifus.vector import Vec3, Vec4
+from pyvista import examples
 
 
 def add_coordinate_axes(p: pv.Plotter,
@@ -127,6 +128,7 @@ def add_camera_frustum(p: pv.Plotter,
                        intrinsics: Intrinsics,
                        img_w: Optional[float] = None,
                        img_h: Optional[float] = None,
+                       image: Optional[np.ndarray] = None,
                        color='lightgray',
                        size: float = 0.3,
                        label: Optional[Union[str, int]] = None,
@@ -143,6 +145,10 @@ def add_camera_frustum(p: pv.Plotter,
     center = pose.get_translation()
 
     depth = size * pose.camera_coordinate_convention.forward_direction.sign()
+
+    # if image is not None:
+    #     img_h = image.shape[0]
+    #     img_w = image.shape[1]
 
     img_w = 2 * intrinsics.cx if img_w is None else img_w
     img_h = 2 * intrinsics.cy if img_h is None else img_h
@@ -165,6 +171,17 @@ def add_camera_frustum(p: pv.Plotter,
     points_world = (pose @ intrinsics.homogenize(invert=True) @ points.T).T
     points_world_frustum = points_world[:4]
     points_world_up_triangle = points_world[4:]
+
+    if image is not None:
+        image_rectangle = pv.Rectangle([points_world_frustum[0][:3],
+                                        points_world_frustum[1][:3],
+                                        points_world_frustum[2][:3],
+                                        points_world_frustum[3][:3]])
+        # image_file = examples.mapfile
+        # tex = pv.read_texture(image_file)
+        tex = pv.numpy_to_texture(image)
+        image_rectangle.active_t_coords = np.array([[0, 1], [1, 1], [1, 0], [0, 0]])
+        p.add_mesh(image_rectangle, texture=tex)
 
     # Draw lines from rectangle corners to camera origin
     for i_point, point_world in enumerate(points_world_frustum):

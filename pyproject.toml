@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dreifus"
-version = "0.0.2"
+version = "0.0.3"
 description = "dreifus lifts your 3D camera experience and facilitates computer vision applications"
 authors = [
     { name = "Tobias Kirschstein", email = "tobias.kirschstein@gmail.com" },
@@ -23,7 +23,7 @@ dependencies = [
     "opencv-python>=4.6",
     "numpy>=1.24",
     "scipy>=1.10",
-    "torch>=1.13",
+    "torch>=1.12",
     "pyvista>=0.38"
 ]
 
