@@ -1,4 +1,4 @@
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Tuple
 
 import cv2
 import numpy as np
@@ -214,7 +214,10 @@ class Pose(np.ndarray):
         # Negates / Flips rows
         self[:, :] = axis_switcher @ self
 
-    def change_camera_coordinate_convention(self, new_camera_coordinate_convention: CameraCoordinateConvention) -> 'Pose':
+    def change_camera_coordinate_convention(self,
+                                            new_camera_coordinate_convention: CameraCoordinateConvention) -> 'Pose':
+        assert self.pose_type == PoseType.CAM_2_WORLD, "Camera coordinate conventions can only be changed on CAM_2_WORLD matrices"
+
         current_ccc = self.camera_coordinate_convention
 
         pose = self.copy()
@@ -229,6 +232,19 @@ class Pose(np.ndarray):
             pose.negate_orientation_axis(2)
 
         pose.camera_coordinate_convention = new_camera_coordinate_convention
+
+        return pose
+
+    def change_pose_type(self, new_pose_type: PoseType) -> 'Pose':
+        assert self.pose_type in {PoseType.CAM_2_WORLD, PoseType.WORLD_2_CAM}, \
+            "start pose must be either cam2world or world2cam"
+        assert new_pose_type in {PoseType.CAM_2_WORLD, PoseType.WORLD_2_CAM}, \
+            "target pose type must be either cam2world or world2cam"
+
+        pose = self.copy()
+
+        if pose.pose_type != new_pose_type:
+            pose = pose.invert()
 
         return pose
 
@@ -274,6 +290,37 @@ class Pose(np.ndarray):
         self.set_rotation_matrix(np.array([x_axis, y_axis, z_axis]).T)
         # self.set_translation(np.dot(x_axis, eye), np.dot(y_axis, eye), np.dot(z_axis, eye))
         self.set_translation(eye)
+
+    def calculate_rigid_transformation_to(self, other: 'Pose') -> 'Pose':
+        """
+        Let current cam2world pose = X and target cam2world pose = Y.
+        Calculate a rigid transform T, s.t. T @ X = Y
+        In other words, T shall rotate and move the coordinate system of X such that it aligns with the coordinate
+        system of Y.
+
+        Parameters
+        ----------
+            other:
+                the target pose. Must be either cam2world or world2cam
+
+        Returns
+        -------
+            The rigid transformation T (a cam2cam pose) that aligns the current pose with the specified pose.
+        """
+
+        assert self.pose_type in {PoseType.CAM_2_WORLD, PoseType.WORLD_2_CAM}, \
+            "start pose must be either cam2world or world2cam"
+        assert other.pose_type in {PoseType.CAM_2_WORLD, PoseType.WORLD_2_CAM}, \
+            "target pose must be either cam2world or world2cam"
+
+        # TODO: Continue
+        source_cam2world = self.change_pose_type(PoseType.CAM_2_WORLD)
+        target_cam2world = other.change_pose_type(PoseType.CAM_2_WORLD)
+
+        rigid_transformation = target_cam2world @ source_cam2world.invert()
+        assert rigid_transformation.pose_type == PoseType.CAM_2_CAM
+
+        return rigid_transformation
 
     def __rmatmul__(self, other):
         if isinstance(other, Pose):

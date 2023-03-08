@@ -96,6 +96,7 @@ class CameraCoordinateConvention(Enum):
     OPEN_CV = (SemanticAxisDirection.RIGHT, SemanticAxisDirection.DOWN, SemanticAxisDirection.FORWARD)
     OPEN_GL = (SemanticAxisDirection.RIGHT, SemanticAxisDirection.UP, SemanticAxisDirection.BACKWARD)  # Also Blender
     DIRECT_X = (SemanticAxisDirection.RIGHT, SemanticAxisDirection.UP, SemanticAxisDirection.FORWARD)  # Also Unity
+    PYTORCH_3D = (SemanticAxisDirection.LEFT, SemanticAxisDirection.UP, SemanticAxisDirection.FORWARD)
 
     def __init__(self,
                  x_direction: SemanticAxisDirection,
