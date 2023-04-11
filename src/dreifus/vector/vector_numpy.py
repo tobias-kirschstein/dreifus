@@ -101,6 +101,12 @@ class Vec3(np.ndarray):
         vec3[:] = [x, y, z]
         return vec3
 
+    @staticmethod
+    def unit(dimension: int) -> 'Vec3':
+        unit_vector = Vec3()
+        unit_vector[dimension] = 1
+        return unit_vector
+
     @property
     def x(self) -> float:
         return self[0]

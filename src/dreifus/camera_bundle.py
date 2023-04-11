@@ -8,23 +8,36 @@ from dreifus.vector import Vec3, rotation_matrix_between_vectors, offset_vector_
     angle_between_vectors
 
 
-def calculate_look_center(cam_to_world_poses: List[Pose], distance_to_center: float) -> Vec3:
-    look_centers = []
-    for cam_to_world in cam_to_world_poses:
-        look_direction = -cam_to_world.get_look_direction()  # TODO: get_look_direction() is negated now, can we remove the minus?
-        position = cam_to_world.get_translation()
-        # TODO: This is not a very sophisticated approach
-        look_center = position + distance_to_center * look_direction
-        look_centers.append(look_center)
+def calculate_look_center(cam_to_world_poses: List[Pose]) -> Vec3:
+    a = []  # point on look-direction line (i.e., position of camera)
+    d = []  # look direction
 
-    return Vec3(np.mean(look_centers, axis=0))
+    for cam_to_world_pose in cam_to_world_poses:
+        position = cam_to_world_pose.get_translation()
+        look_direction = cam_to_world_pose.get_look_direction()
+
+        a.append(position)
+        d.append(look_direction)
+
+    # See https://stackoverflow.com/questions/48154210/3d-point-closest-to-multiple-lines-in-3d-space
+    M = np.zeros((3, 3))
+    for k in range(3):
+        ms = [d[i][k] * d[i] - (d[i].dot(d[i])) * Vec3.unit(k) for i in range(3)]
+        M[k] = sum(ms)
+
+    b = sum([d[i] * (a[i].dot(d[i])) - a[i] * (d[i].dot(d[i])) for i in range(3)])
+
+    look_center = np.linalg.solve(M, b)
+
+    return Vec3(look_center)
 
 
 def align_poses(world_to_cam_poses: List[Pose],
                 up: Optional[Vec3] = Vec3(0, 1, 0),
                 look: Optional[Vec3] = Vec3(0, 0, -1),
                 look_center: Optional[Vec3] = Vec3(0, 0, 0),
-                cam_to_world: bool = False) -> List[Pose]:
+                cam_to_world: bool = False,
+                inplace: bool = False) -> List[Pose]:
     """
     Calibration poses can be arbitrarily aligned. This method provides a utility to transform a set of camera poses
     such that their up/look directions and look center correspond to the specified values.
@@ -45,6 +58,9 @@ def align_poses(world_to_cam_poses: List[Pose],
     -------
         the re-aligned camera poses
     """
+
+    if not inplace:
+        world_to_cam_poses = [pose.copy() for pose in world_to_cam_poses]
 
     if cam_to_world:
         cam_to_world_poses = world_to_cam_poses
@@ -69,12 +85,15 @@ def align_poses(world_to_cam_poses: List[Pose],
 
     # Align the look center
     if look_center is not None:
-        look_directions = [cam_pose.get_look_direction() for cam_pose in cam_to_world_poses]
-        cameras_center = np.mean([cam_pose.get_translation() for cam_pose in cam_to_world_poses], axis=0)
-        average_look_direction = np.mean(look_directions, axis=0)
-        # TODO: This won't move cameras much if cameras_center is already at look_center
-        #   Would have to somehow find the point that is closest to all camera rays
-        offset_vector = offset_vector_between_line_and_point(cameras_center, average_look_direction, look_center)
+        original_look_center = calculate_look_center(cam_to_world_poses)
+        offset_vector = look_center - original_look_center
+
+        # look_directions = [cam_pose.get_look_direction() for cam_pose in cam_to_world_poses]
+        # cameras_center = np.mean([cam_pose.get_translation() for cam_pose in cam_to_world_poses], axis=0)
+        # average_look_direction = np.mean(look_directions, axis=0)
+        # # TODO: This won't move cameras much if cameras_center is already at look_center
+        # #   Would have to somehow find the point that is closest to all camera rays
+        # offset_vector = offset_vector_between_line_and_point(cameras_center, average_look_direction, look_center)
         for cam_pose in cam_to_world_poses:
             cam_pose.move(offset_vector)
 

@@ -1,6 +1,8 @@
 import math
 from enum import Enum, auto
 
+import numpy as np
+
 from dreifus.vector import Vec3
 
 
@@ -15,7 +17,12 @@ class AxisDirection(Enum):
     NEG_Z = (0, 0, -1)
 
     def __init__(self, x: int, y: int, z: int):
+        assert sum([x == 0, y == 0, z == 0]) == 2, "Exactly two coordinates have to be zero"
+        assert sum([abs(x) == 1, abs(y) == 1, abs(z) == 1]) == 1, "Exactly one coordinate has to be 1 or -1"
+
         self.axis = Vec3(x, y, z)
+        self.axis_id = np.abs(np.array([x, y, z])).argmax()
+
 
     def sign(self) -> int:
         return self.axis.sum()

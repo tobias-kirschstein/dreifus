@@ -132,7 +132,8 @@ def add_camera_frustum(p: pv.Plotter,
                        color='lightgray',
                        size: float = 0.3,
                        label: Optional[Union[str, int]] = None,
-                       line_width: float = 1):
+                       line_width: float = 1,
+                       look_vector_length: float = 0):
 
     if pose.pose_type == PoseType.WORLD_2_CAM:
         pose = pose.invert()
@@ -199,6 +200,12 @@ def add_camera_frustum(p: pv.Plotter,
          points_world_up_triangle[[0], :3]], axis=0),
         width=line_width,
         color=color)
+
+    # Draw look direction line
+    if look_vector_length > 0:
+        position = pose.get_translation()
+        look_direction = pose.get_look_direction()
+        p.add_lines(np.stack([position, position + look_vector_length * look_direction]), width=line_width, color=color)
 
     if label is not None:
         p_center = center

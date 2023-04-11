@@ -109,6 +109,7 @@ class Pose(np.ndarray):
         return Vec4(R.from_matrix(self.get_rotation_matrix()).as_quat())
 
     def get_translation(self) -> Vec3:
+        assert self.pose_type == PoseType.CAM_2_WORLD, "camera position only makes sense for CAM_2_WORLD poses"
         return Vec3(self[:3, 3])
 
     def set_translation(self, x: Vec3TypeX, y: Optional[FloatType] = None, z: Optional[FloatType] = None):
@@ -146,11 +147,19 @@ class Pose(np.ndarray):
                      order: str,
                      euler_x: Vec3TypeX = 0,
                      euler_y: Optional[float] = None,
-                     euler_z: Optional[float] = None):
+                     euler_z: Optional[float] = None,
+                     inplace: bool = True) -> 'Pose':
+        if inplace:
+            pose = self
+        else:
+            pose = self.copy()
+
         euler_x, euler_y, euler_z = unpack_3d_params(euler_x, euler_y, euler_z, default=0)
         euler_rotation = Vec3(euler_x, euler_y, euler_z)
-        current_euler_angles = self.get_euler_angles(order)
-        self.set_rotation_euler(order, current_euler_angles + euler_rotation)
+        current_euler_angles = pose.get_euler_angles(order)
+        pose.set_rotation_euler(order, current_euler_angles + euler_rotation)
+
+        return pose
 
     def invert(self) -> 'Pose':
         inverted_rotation = self.get_rotation_matrix().T
@@ -179,7 +188,7 @@ class Pose(np.ndarray):
         # negates the column of the rotation matrix
         self[:3, axis] *= -1
 
-    def swap_axes(self, permutation: List[Union[int, str]]):
+    def swap_axes(self, permutation: List[Union[int, str]], inplace: bool = True) -> 'Pose':
         """
         Negates/swaps entire rows of the pose matrix.
         Essentially, applies a rotation / flip operation around the world origin to the camera object.
@@ -194,6 +203,11 @@ class Pose(np.ndarray):
         ----------
             permutation: 3-tuple of axis indicators (either 0, 1, 2 or x, y, z with optional '-' signs)
         """
+
+        if inplace:
+            pose = self
+        else:
+            pose = self.copy()
 
         axis_switcher = np.zeros((4, 4))
         axis_order = ['x', 'y', 'z']
@@ -212,15 +226,21 @@ class Pose(np.ndarray):
         axis_switcher[3, 3] = 1
 
         # Negates / Flips rows
-        self[:, :] = axis_switcher @ self
+        pose[:, :] = axis_switcher @ pose
+
+        return pose
 
     def change_camera_coordinate_convention(self,
-                                            new_camera_coordinate_convention: CameraCoordinateConvention) -> 'Pose':
+                                            new_camera_coordinate_convention: CameraCoordinateConvention,
+                                            inplace: bool = True) -> 'Pose':
         assert self.pose_type == PoseType.CAM_2_WORLD, "Camera coordinate conventions can only be changed on CAM_2_WORLD matrices"
 
         current_ccc = self.camera_coordinate_convention
 
-        pose = self.copy()
+        if inplace:
+            pose = self
+        else:
+            pose = self.copy()
 
         if current_ccc.x_direction != new_camera_coordinate_convention.x_direction:
             pose.negate_orientation_axis(0)
@@ -254,7 +274,10 @@ class Pose(np.ndarray):
         # Assumes an OpenCV camera coordinate system convention (x -> right, y -> down, z -> forward/look)
 
         assert self.pose_type == PoseType.CAM_2_WORLD
-        look_direction = self[:3, 2]
+        forward_direction = self.camera_coordinate_convention.forward_direction
+        axis = forward_direction.axis_id
+        sign = forward_direction.sign()
+        look_direction = sign * Vec3(self[:3, axis])
 
         return look_direction
 
@@ -264,7 +287,11 @@ class Pose(np.ndarray):
         # Assumes an OpenCV camera coordinate system convention (x -> right, y -> down, z -> forward)
 
         assert self.pose_type == PoseType.CAM_2_WORLD
-        up_direction = -self[:3, 1]
+        up_direction = self.camera_coordinate_convention.up_direction
+        axis = up_direction.axis_id
+        sign = up_direction.sign()
+
+        up_direction = sign * Vec3(self[:3, up_direction])
 
         return up_direction
 
@@ -276,6 +303,7 @@ class Pose(np.ndarray):
         # That way the translation part of the pose matrix is the location of the object in world space
 
         assert self.pose_type == PoseType.CAM_2_WORLD
+        assert self.camera_coordinate_convention == CameraCoordinateConvention.OPEN_CV
 
         eye = self.get_translation()
         z_axis = (at - eye).normalize()  # Assumes z-axis is forward
