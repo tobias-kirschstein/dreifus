@@ -109,7 +109,7 @@ class Pose(np.ndarray):
         return Vec4(R.from_matrix(self.get_rotation_matrix()).as_quat())
 
     def get_translation(self) -> Vec3:
-        assert self.pose_type == PoseType.CAM_2_WORLD, "camera position only makes sense for CAM_2_WORLD poses"
+        # assert self.pose_type == PoseType.CAM_2_WORLD, "camera position only makes sense for CAM_2_WORLD poses"
         return Vec3(self[:3, 3])
 
     def set_translation(self, x: Vec3TypeX, y: Optional[FloatType] = None, z: Optional[FloatType] = None):
@@ -121,11 +121,20 @@ class Pose(np.ndarray):
         if z is not None:
             self[2, 3] = z
 
-    def move(self, x: Optional[Vec3TypeX] = None, y: Optional[FloatType] = None, z: Optional[FloatType] = None):
+    def move(self, x: Optional[Vec3TypeX] = None, y: Optional[FloatType] = None, z: Optional[FloatType] = None,
+             inplace: bool = True) -> 'Pose':
         x, y, z = unpack_3d_params(x, y, z, 0)
-        self[0, 3] += x
-        self[1, 3] += y
-        self[2, 3] += z
+
+        if inplace:
+            pose = self
+        else:
+            pose = self.copy()
+
+        pose[0, 3] += x
+        pose[1, 3] += y
+        pose[2, 3] += z
+
+        return pose
 
     def scale(self, scale: float) -> 'Pose':
         self[:3, 3] *= scale
@@ -225,6 +234,9 @@ class Pose(np.ndarray):
             axis_switcher[idx, ax] = v
         axis_switcher[3, 3] = 1
 
+        if np.abs(np.linalg.det(axis_switcher) - 1) > 1e-6:
+            print("[WARNING] swap_axis changes handedness!")
+
         # Negates / Flips rows
         pose[:, :] = axis_switcher @ pose
 
@@ -291,7 +303,7 @@ class Pose(np.ndarray):
         axis = up_direction.axis_id
         sign = up_direction.sign()
 
-        up_direction = sign * Vec3(self[:3, up_direction])
+        up_direction = sign * Vec3(self[:3, axis])
 
         return up_direction
 

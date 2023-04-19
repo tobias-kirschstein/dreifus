@@ -138,7 +138,7 @@ def add_camera_frustum(p: pv.Plotter,
     if pose.pose_type == PoseType.WORLD_2_CAM:
         pose = pose.invert()
 
-    pose = pose.change_camera_coordinate_convention(CameraCoordinateConvention.OPEN_CV)
+    pose = pose.change_camera_coordinate_convention(CameraCoordinateConvention.OPEN_CV, inplace=False)
 
     assert pose.pose_type == PoseType.CAM_2_WORLD
     assert pose.camera_coordinate_convention == CameraCoordinateConvention.OPEN_CV
@@ -214,7 +214,7 @@ def add_camera_frustum(p: pv.Plotter,
                            fill_shape=False, shape=None, show_points=False, text_color=color)
 
 
-def add_coordinate_system(p: pv.Plotter, cam_to_world: Pose):
+def add_coordinate_system(p: pv.Plotter, cam_to_world: Pose, scale: float = 1, line_width: float = 1):
     axis_color_map = {
         0: 'r',
         1: 'g',
@@ -222,16 +222,16 @@ def add_coordinate_system(p: pv.Plotter, cam_to_world: Pose):
     }
 
     origin = cam_to_world.get_translation()
-    px = Vec4(1, 0, 0, 1)
-    py = Vec4(0, 1, 0, 1)
-    pz = Vec4(0, 0, 1, 1)
+    px = Vec4(scale, 0, 0, 1)
+    py = Vec4(0, scale, 0, 1)
+    pz = Vec4(0, 0, scale, 1)
 
     points = np.stack([px, py, pz])
     points_world = (cam_to_world @ points.T).T
 
     for i_point, point_world in enumerate(points_world):
         color = axis_color_map[i_point]
-        p.add_lines(np.array([origin, point_world[:3]]), width=1, color=color)
+        p.add_lines(np.array([origin, point_world[:3]]), width=line_width, color=color)
 
 
 def set_camera(p: pv.Plotter, cam_to_world: Pose, neg_z_forward: bool = False):
