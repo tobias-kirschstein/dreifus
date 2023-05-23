@@ -143,6 +143,15 @@ class Vec3(np.ndarray):
     def homogenize(self) -> 'Vec4':
         return Vec4(self, 1)
 
+    def sum(self) -> float:
+        # Ensure that .sum() does not return a Vec3 object with just one value
+        return super(Vec3, self).sum().item()
+
+    def __eq__(self, other) -> bool:
+        assert isinstance(other, Vec3), "Can only compare against other Vec3 instances"
+
+        return (self.x == other.x and self.y == other.y and self.z == other.z)
+
 
 class Vec4(np.ndarray):
     def __new__(cls,

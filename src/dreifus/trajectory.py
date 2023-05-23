@@ -3,6 +3,7 @@ from typing import Optional, List
 
 import numpy as np
 
+from dreifus.camera import PoseType
 from dreifus.matrix import Pose
 from dreifus.vector import Vec3
 
@@ -40,7 +41,7 @@ def circle_around_axis(n_poses: int,
                        distance_end: Optional[float] = None,
                        theta_from: float = 0,
                        theta_to: float = 2 * np.pi,
-                       look_at: Vec3 = Vec3()) -> List[Pose]:
+                       look_at: Vec3 = Vec3(0, 0, 0)) -> List[Pose]:
     """
     Computes `n_poses` many camera poses (cam2world) that circle with distance `distance` around the specified `axis`
     that is moved by `move`.
@@ -84,7 +85,7 @@ def circle_around_axis(n_poses: int,
         distance = distance_start + alpha * (distance_end - distance_start)
         location = distance * point_around_axis(theta, axis=axis)
 
-        pose = Pose()
+        pose = Pose(pose_type=PoseType.CAM_2_WORLD)
         location += move
         pose.set_translation(location)
         pose.look_at(look_at, up=up)
