@@ -388,6 +388,9 @@ class Pose(np.ndarray):
 
         return pose
 
+    def numpy(self) -> np.ndarray:
+        return np.array(self)
+
     def __repr__(self):
         representation = super(Pose, self).__repr__()
         representation = f"{representation}\n" \

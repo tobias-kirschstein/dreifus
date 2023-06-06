@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from typing import Union, Tuple, Optional
+
+import numpy as np
 from elias.config import Config
 
+from dreifus.matrix import Intrinsics, Pose
 from dreifus.vector.vector_base import unpack_nd_params
 
 

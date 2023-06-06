@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union, Tuple
 
 import numpy as np
 from dreifus.camera import PoseType
@@ -37,7 +37,8 @@ def align_poses(world_to_cam_poses: List[Pose],
                 look: Optional[Vec3] = Vec3(0, 0, -1),
                 look_center: Optional[Vec3] = Vec3(0, 0, 0),
                 cam_to_world: bool = False,
-                inplace: bool = False) -> List[Pose]:
+                inplace: bool = False,
+                return_transformation: bool = False) -> Union[List[Pose], Tuple[List[Pose], Pose]]:
     """
     Calibration poses can be arbitrarily aligned. This method provides a utility to transform a set of camera poses
     such that their up/look directions and look center correspond to the specified values.
@@ -53,6 +54,10 @@ def align_poses(world_to_cam_poses: List[Pose],
         look: where the look direction should point to
         look_center: where the look center of all cameras should fall into
         cam_to_world: whether the provided poses are already cam_to_world
+        return_transformation:
+            If specified, a 4x4 transformation matrix is returned that transforms the cam_to_world_poses into
+            aligned space exactly as align_poses() would do. Apply as:
+                transformation @ world_to_cam_poses[i].invert()
 
     Returns
     -------
@@ -67,6 +72,8 @@ def align_poses(world_to_cam_poses: List[Pose],
     else:
         cam_to_world_poses = [cam_pose.invert() for cam_pose in world_to_cam_poses]
 
+    transformation = np.eye(4)
+
     # Align up direction
     if up is not None:
         up_directions = [cam_pose.get_up_direction() for cam_pose in cam_to_world_poses]
@@ -74,6 +81,7 @@ def align_poses(world_to_cam_poses: List[Pose],
         align_up_rotation = rotation_matrix_between_vectors(average_up_direction, up)
         rotator_up = Pose(align_up_rotation, Vec3(), pose_type=PoseType.CAM_2_CAM)
         cam_to_world_poses = [rotator_up @ cam_pose for cam_pose in cam_to_world_poses]
+        transformation = rotator_up
 
     # Align the look direction
     if look is not None:
@@ -82,6 +90,7 @@ def align_poses(world_to_cam_poses: List[Pose],
         align_look_rotation = rotation_matrix_between_vectors(average_look_direction, look)
         rotator_look = Pose(align_look_rotation, Vec3(), pose_type=PoseType.CAM_2_CAM)
         cam_to_world_poses = [rotator_look @ cam_pose for cam_pose in cam_to_world_poses]
+        transformation = rotator_look @ transformation
 
     # Align the look center
     if look_center is not None:
@@ -97,6 +106,10 @@ def align_poses(world_to_cam_poses: List[Pose],
         for cam_pose in cam_to_world_poses:
             cam_pose.move(offset_vector)
 
+        mover = np.eye(4)
+        mover[:3, 3] = offset_vector
+        transformation = mover @ transformation
+
     if up is not None:
         # Aligning the look direction might mess up the up direction again
         up_directions = [cam_pose.get_up_direction() for cam_pose in cam_to_world_poses]
@@ -106,5 +119,10 @@ def align_poses(world_to_cam_poses: List[Pose],
         # TODO: Here we assume that look direction should be z axis. Correct would be to rotate around look direction
         rotator = Pose.from_euler(Vec3(0, 0, -angle), pose_type=PoseType.CAM_2_CAM)
         cam_to_world_poses = [rotator @ cam_pose for cam_pose in cam_to_world_poses]
+        transformation = rotator @ transformation
 
-    return cam_to_world_poses
+    if return_transformation:
+        transformation = Pose(transformation, pose_type=PoseType.CAM_2_CAM)
+        return cam_to_world_poses, transformation
+    else:
+        return cam_to_world_poses
