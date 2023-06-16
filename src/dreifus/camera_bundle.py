@@ -117,9 +117,14 @@ def align_poses(world_to_cam_poses: List[Pose],
         angle = angle_between_vectors(average_up_direction, up)
 
         # TODO: Here we assume that look direction should be z axis. Correct would be to rotate around look direction
-        rotator = Pose.from_euler(Vec3(0, 0, -angle), pose_type=PoseType.CAM_2_CAM)
+        rotator = Pose.from_euler(Vec3(0, 0, angle), pose_type=PoseType.CAM_2_CAM)
         cam_to_world_poses = [rotator @ cam_pose for cam_pose in cam_to_world_poses]
         transformation = rotator @ transformation
+
+        up_directions_after_alignment = [cam_pose.get_up_direction() for cam_pose in cam_to_world_poses]
+        average_up_direction_after_alignment = np.mean(up_directions_after_alignment, axis=0)
+        assert average_up_direction_after_alignment.dot(up) > 0.9, \
+            "Up directions could not be properly aligned. This can happen if the desired look direction is something else than the z-axis"
 
     if return_transformation:
         transformation = Pose(transformation, pose_type=PoseType.CAM_2_CAM)
