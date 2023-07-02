@@ -112,7 +112,7 @@ class Pose(np.ndarray):
         # assert self.pose_type == PoseType.CAM_2_WORLD, "camera position only makes sense for CAM_2_WORLD poses"
         return Vec3(self[:3, 3])
 
-    def set_translation(self, x: Vec3TypeX, y: Optional[FloatType] = None, z: Optional[FloatType] = None):
+    def set_translation(self, x: Optional[Vec3TypeX] = None, y: Optional[FloatType] = None, z: Optional[FloatType] = None):
         x, y, z = unpack_3d_params(x, y, z)
         if x is not None:
             self[0, 3] = x
