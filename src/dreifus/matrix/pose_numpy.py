@@ -245,6 +245,7 @@ class Pose(np.ndarray):
     def change_camera_coordinate_convention(self,
                                             new_camera_coordinate_convention: CameraCoordinateConvention,
                                             inplace: bool = True) -> 'Pose':
+        # TODO: Make this work for WORLD_2_CAM poses as well
         assert self.pose_type == PoseType.CAM_2_WORLD, "Camera coordinate conventions can only be changed on CAM_2_WORLD matrices"
 
         current_ccc = self.camera_coordinate_convention
@@ -267,13 +268,18 @@ class Pose(np.ndarray):
 
         return pose
 
-    def change_pose_type(self, new_pose_type: PoseType) -> 'Pose':
+    def change_pose_type(self,
+                         new_pose_type: PoseType,
+                         inplace: bool = True) -> 'Pose':
         assert self.pose_type in {PoseType.CAM_2_WORLD, PoseType.WORLD_2_CAM}, \
             "start pose must be either cam2world or world2cam"
         assert new_pose_type in {PoseType.CAM_2_WORLD, PoseType.WORLD_2_CAM}, \
             "target pose type must be either cam2world or world2cam"
 
-        pose = self.copy()
+        if inplace:
+            pose = self
+        else:
+            pose = self.copy()
 
         if pose.pose_type != new_pose_type:
             pose = pose.invert()
@@ -354,8 +360,8 @@ class Pose(np.ndarray):
             "target pose must be either cam2world or world2cam"
 
         # TODO: Continue
-        source_cam2world = self.change_pose_type(PoseType.CAM_2_WORLD)
-        target_cam2world = other.change_pose_type(PoseType.CAM_2_WORLD)
+        source_cam2world = self.change_pose_type(PoseType.CAM_2_WORLD, inplace=False)
+        target_cam2world = other.change_pose_type(PoseType.CAM_2_WORLD, inplace=False)
 
         rigid_transformation = target_cam2world @ source_cam2world.invert()
         assert rigid_transformation.pose_type == PoseType.CAM_2_CAM

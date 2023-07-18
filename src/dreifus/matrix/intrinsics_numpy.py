@@ -58,7 +58,10 @@ class Intrinsics(np.ndarray):
     def s(self) -> float:
         return self[0, 1].item()
 
-    def rescale(self, scale_factor: float, scale_factor_y: Optional[float] = None) -> 'Intrinsics':
+    def rescale(self,
+                scale_factor: float,
+                scale_factor_y: Optional[float] = None,
+                inplace: bool = True) -> 'Intrinsics':
         """
         When images that correspond to this intrinsics matrix are resized, the intrinsics should also be re-scaled
         to account for the image size change.
@@ -82,13 +85,18 @@ class Intrinsics(np.ndarray):
         scale_factor_x = scale_factor
         scale_factor_y = scale_factor if scale_factor_y is None else scale_factor_y
 
-        self[0, 0] *= scale_factor_x  # fx
-        self[1, 1] *= scale_factor_y  # fy
-        self[0, 2] *= scale_factor_x  # cx
-        self[1, 2] *= scale_factor_y  # cy
+        if inplace:
+            intrinsics = self
+        else:
+            intrinsics = self.copy()
+
+        intrinsics[0, 0] *= scale_factor_x  # fx
+        intrinsics[1, 1] *= scale_factor_y  # fy
+        intrinsics[0, 2] *= scale_factor_x  # cx
+        intrinsics[1, 2] *= scale_factor_y  # cy
         # TODO: What about s?
 
-        return self
+        return intrinsics
 
     def crop(self,
              crop_left: int = 0,
