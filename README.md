@@ -64,3 +64,14 @@ add_coordinate_axes(p)
 add_camera_frustum(p, pose, intrinsics, image=image)
 
 ```
+
+Render a pyvista scene from a specific camera:
+```python
+import pyvista as pv
+from dreifus.pyvista import render_from_camera
+
+p = pv.Plotter(window_size=[IMG_W, IMG_H], off_screen=True)
+p.background_color = (0, 0, 0, 0)
+
+image = render_from_camera(p, pose, intrinsics)
+```

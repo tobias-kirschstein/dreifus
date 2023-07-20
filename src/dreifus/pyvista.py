@@ -3,9 +3,10 @@ from typing import Optional, Union, Tuple
 import numpy as np
 import pyvista as pv
 
-
 # TODO: Points is not a float type. This can cause issues when transforming or applying filters.
 #  Casting to ``np.float32``. Disable this by passing ``force_float=False``
+import vtk
+
 from dreifus.camera import PoseType, CameraCoordinateConvention
 from dreifus.matrix import Pose, Intrinsics
 from dreifus.vector import Vec3, Vec4
@@ -134,7 +135,6 @@ def add_camera_frustum(p: pv.Plotter,
                        label: Optional[Union[str, int]] = None,
                        line_width: float = 1,
                        look_vector_length: float = 0):
-
     if pose.pose_type == PoseType.WORLD_2_CAM:
         pose = pose.invert()
 
@@ -246,3 +246,80 @@ def set_camera(p: pv.Plotter, cam_to_world: Pose, neg_z_forward: bool = False):
     p.camera_position = cam_to_world.get_translation().tolist()
     p.camera.focal_point = focal_point
     p.camera.up = up_direction  # TODO: Do we need to negate here? OpenCV coordinate y goes down
+
+
+def render_from_camera(p: pv.Plotter,
+                       pose: Pose,
+                       intrinsics: Intrinsics) -> np.ndarray:
+    """
+    Render the given scene from the specified camera.
+    The image size will be the size of the pyvista window.
+    The pyvista plotter should be initialized like this:
+    ```
+    p = pv.Plotter(off_screen=True, window_size=[IMG_W, IMG_H])
+    ```
+
+    Parameters
+    ----------
+        p: the pyvista scene to render
+        pose: extrinsics camera pose
+        intrinsics: camera intrinsics
+
+    Returns
+    -------
+        A numpy array [IMG_H, IMG_W, 4] containing the rendered scene. The background is transparent and a mask can
+        be obtained from the alpha channel
+    """
+
+    pose = pose.change_pose_type(PoseType.CAM_2_WORLD, inplace=False)
+    pose = pose.change_camera_coordinate_convention(CameraCoordinateConvention.OPEN_CV, inplace=False)
+    pose = pose.change_pose_type(PoseType.WORLD_2_CAM, inplace=False)
+
+    w = p.window_size[0]
+    h = p.window_size[1]
+
+    # ----------------------------------------------------------
+    # Intrinsics
+    # ----------------------------------------------------------
+    cx = intrinsics.cx
+    cy = intrinsics.cy
+    fx = intrinsics.fx
+    fy = intrinsics.fy
+
+    # convert the principal point to window center (normalized coordinate system) and set it
+    wcx = -2 * (cx - float(w) / 2) / w
+    wcy = 2 * (cy - float(h) / 2) / h
+    p.camera.SetWindowCenter(wcx, wcy)
+
+    # convert the focal length to view angle and set it
+    view_angle = 180 / np.pi * (2.0 * np.arctan2(h / 2.0, fx))
+    p.camera.SetViewAngle(view_angle)
+
+    # ----------------------------------------------------------
+    # Extrinsics
+    # ----------------------------------------------------------
+
+    # apply the transform to scene objects
+    vtk_pose = vtk.vtkMatrix4x4()
+    for i in range(pose.shape[0]):
+        for j in range(pose.shape[1]):
+            vtk_pose.SetElement(i, j, pose[i, j])
+
+    p.camera.SetModelTransformMatrix(vtk_pose)
+
+    # the camera can stay at the origin because we are transforming the scene objects
+    p.camera.SetPosition(0, 0, 0)
+
+    # look in the +Z direction of the camera coordinate system
+    p.camera.SetFocalPoint(0, 0, 1)
+
+    # the camera Y axis points down
+    p.camera.SetViewUp(0, -1, 0)
+
+    # ensure the relevant range of depths are rendered
+    p.renderer.ResetCameraClippingRange()
+
+    p.render()  # Important, otherwise view isn't updated when render_from_camera() is called multiple times
+    img = np.asarray(p.screenshot(transparent_background=True))
+
+    return img

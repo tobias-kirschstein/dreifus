@@ -1,3 +1,5 @@
+from typing import Union, Tuple
+
 import numpy as np
 
 from dreifus.camera import CameraCoordinateConvention, PoseType
@@ -56,11 +58,16 @@ def project(points: np.ndarray, pose: Pose, intrinsics: Intrinsics) -> np.ndarra
     return p_screen
 
 
-def draw_onto_image(image: np.ndarray, points: np.ndarray, values: np.ndarray):
+def draw_onto_image(image: np.ndarray,
+                    points: np.ndarray,
+                    values: Union[np.ndarray, Tuple]):
     projected_x = points[:, 0].round().astype(int)
     projected_y = points[:, 1].round().astype(int)
     valid_x = (0 <= projected_x) & (projected_x < image.shape[1])
     valid_y = (0 <= projected_y) & (projected_y < image.shape[0])
     valid_xy = valid_x & valid_y
 
-    image[projected_y[valid_xy], projected_x[valid_xy]] = values[valid_xy]
+    if isinstance(values, tuple):
+        image[projected_y[valid_xy], projected_x[valid_xy]] = values
+    else:
+        image[projected_y[valid_xy], projected_x[valid_xy]] = values[valid_xy]
