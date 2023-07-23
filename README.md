@@ -6,7 +6,7 @@ world2cam?
 The dreifus library is what you need!   
 dreifus (German for tripod) assists you in dealing with 3D cameras in Python.
 
-## Installation
+## 1. Installation
 
 ```shell
 pip install dreifus
@@ -15,6 +15,7 @@ pip install dreifus
 ## 2. Usage
 
 ### 2.1. Extrinsic (Pose) matrices
+Translating between coordinate conventions made easy:
 
 ```python
 from dreifus.matrix import Pose, CameraCoordinateConvention, PoseType
@@ -43,12 +44,11 @@ intrinsics.rescale(0.5)
 
 # Adapt your intrinsics to an image cropped at (50, 50) left-top
 intrinsics.crop(50, 50)
-
 ```
 
-## Visualization
+## 3. Visualization
 
-The visualization tools will automatically interpret your camera poses correctly, as long as specified `camera_coordinate_convention` and `pose_type` correctly.
+The visualization tools will automatically interpret your camera poses correctly, as long as you specified `camera_coordinate_convention` and `pose_type` correctly.
 ```python
 
 import pyvista as pv
@@ -63,6 +63,7 @@ p = pv.Plotter()
 add_coordinate_axes(p)
 add_camera_frustum(p, pose, intrinsics, image=image)
 
+p.show()
 ```
 
 Render a pyvista scene from a specific camera:
