@@ -43,6 +43,9 @@ class Dimensions(Config, tuple):
     #     elif idx == 1:
     #         return self.h
 
+    def __add__(self, other: 'Dimensions') -> 'Dimensions':
+        return Dimensions(self.w + other.w, self.h + other.h)
+
     @property
     def x(self) -> int:
         return self.w
