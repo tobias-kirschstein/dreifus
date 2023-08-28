@@ -58,6 +58,26 @@ class Intrinsics(np.ndarray):
     def s(self) -> float:
         return self[0, 1].item()
 
+    @fx.setter
+    def fx(self, value: float):
+        self[0, 0] = value
+
+    @fy.setter
+    def fy(self, value: float):
+        self[1, 1] = value
+
+    @cx.setter
+    def cx(self, value: float):
+        self[0, 2] = value
+
+    @cy.setter
+    def cy(self, value: float):
+        self[1, 2] = value
+
+    @s.setter
+    def s(self, value: float):
+        self[0, 1] = value
+
     def rescale(self,
                 scale_factor: float,
                 scale_factor_y: Optional[float] = None,
