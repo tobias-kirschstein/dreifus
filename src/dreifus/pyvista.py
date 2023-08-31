@@ -135,6 +135,40 @@ def add_camera_frustum(p: pv.Plotter,
                        label: Optional[Union[str, int]] = None,
                        line_width: float = 1,
                        look_vector_length: float = 0):
+    """
+    Add a camera frustum visualizing the camera with the given `pose` and `intrinsics` to the pyvista plotter `p`.
+
+    Parameters
+    ----------
+        p:
+            the pyvista Plotter() object
+        pose:
+            the camera pose to visualize. A frustum will be drawn at the camera's world space position
+        intrinsics:
+            intrinsics of the camera. Necessary to properly visualize the viewing angle of the frustum
+        img_w:
+            Optionally, the width of the images that this camera produces. If not specified, it is assumed that
+            the image width is 2 * intrinsics.cx
+        img_h:
+            Optionally, the height of the images that this camera produces. If not specified, it is assumed that
+            the image height is 2 * intrinsics.cy
+        image:
+            Optionally, a color image that is visualized inside the camera frustum. Helpful for debugging camera
+            locations multi-view image scenarios.
+            Expected to be np.uint8
+        color:
+            Optionally, a color for the lines of the drawn camera frustum
+        size:
+            Size of the drawn camera frustum in depth units (camera center location to frustum pane)
+        label:
+            Optionally, a label for the frustum that will be drawn above
+        line_width:
+            The width of the frustum's lines
+        look_vector_length:
+            If >0, an additional line will be drawn from the camera location in look direction with the given length
+            in depth units
+    """
+
     if pose.pose_type == PoseType.WORLD_2_CAM:
         pose = pose.invert()
 
