@@ -1,9 +1,11 @@
 from typing import Union, Type
 from unittest import TestCase
 
+import numpy as np
+
 from dreifus.matrix.pose_numpy import Pose
 from dreifus.matrix.pose_torch import TorchPose
-from dreifus.vector.vector_numpy import Vec2, Vec3, Vec4
+from dreifus.vector.vector_numpy import Vec2, Vec3, Vec4, to_homogeneous
 from dreifus.vector.vector_torch import TorchVec4, TorchVec3
 
 
@@ -124,3 +126,26 @@ class VectorTest(TestCase):
     def test_vec_4(self):
         self._test_vec_4(Vec4)
         self._test_vec_4(TorchVec4)
+
+    def test_to_homogeneous(self):
+        point = Vec3(1, 2, 3)
+
+        point_h = to_homogeneous(point)
+
+        assert np.all(point_h[:3] == np.asarray(point))
+        assert point_h[3] == 1
+        assert len(point_h.shape) == 1
+
+        points = np.random.randn(100, 3)
+        points_h = to_homogeneous(points)
+
+        assert np.all(points_h[..., :3] == np.asarray(points))
+        assert np.all(points_h[..., 3] == 1)
+        assert len(points_h.shape) == len(points.shape)
+
+        points = np.random.randn(5, 7, 11, 3)
+        points_h = to_homogeneous(points)
+
+        assert np.all(points_h[..., :3] == np.asarray(points))
+        assert np.all(points_h[..., 3] == 1)
+        assert len(points_h.shape) == len(points.shape)

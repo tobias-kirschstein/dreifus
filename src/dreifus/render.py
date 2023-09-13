@@ -4,6 +4,7 @@ import numpy as np
 
 from dreifus.camera import CameraCoordinateConvention, PoseType
 from dreifus.matrix import Pose, Intrinsics
+from dreifus.vector import Vec3
 
 
 def back_project(points: np.ndarray, depths: np.ndarray, cam_to_world_pose: Pose, intrinsics: Intrinsics) -> np.ndarray:
@@ -67,7 +68,7 @@ def draw_onto_image(image: np.ndarray,
     valid_y = (0 <= projected_y) & (projected_y < image.shape[0])
     valid_xy = valid_x & valid_y
 
-    if isinstance(values, tuple):
+    if isinstance(values, tuple) or isinstance(values, Vec3):
         image[projected_y[valid_xy], projected_x[valid_xy]] = values
     else:
         image[projected_y[valid_xy], projected_x[valid_xy]] = values[valid_xy]
