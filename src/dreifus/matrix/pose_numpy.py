@@ -170,13 +170,20 @@ class Pose(np.ndarray):
 
         return pose
 
-    def invert(self) -> 'Pose':
+    def invert(self, inplace: bool = False) -> 'Pose':
         inverted_rotation = self.get_rotation_matrix().T
         inverted_translation = -inverted_rotation @ self.get_translation()
-        inverted_pose = Pose(inverted_rotation,
-                             inverted_translation,
-                             camera_coordinate_convention=self.camera_coordinate_convention,
-                             pose_type=self.pose_type.invert())
+
+        if inplace:
+            self.set_rotation_matrix(inverted_rotation)
+            self.set_translation(inverted_translation)
+            self.pose_type = self.pose_type.invert()
+            inverted_pose = self
+        else:
+            inverted_pose = Pose(inverted_rotation,
+                                 inverted_translation,
+                                 camera_coordinate_convention=self.camera_coordinate_convention,
+                                 pose_type=self.pose_type.invert())
         return inverted_pose
 
     def negate_orientation_axis(self, axis: int):
@@ -282,7 +289,7 @@ class Pose(np.ndarray):
             pose = self.copy()
 
         if pose.pose_type != new_pose_type:
-            pose = pose.invert()
+            pose = pose.invert(inplace=inplace)
 
         return pose
 
