@@ -49,7 +49,7 @@ class Pose(np.ndarray):
             assert (matrix_or_rotation[3, :] == [0, 0, 0, 1]).all(), \
                 f"Last row of pose must be [0, 0, 0, 1]. Got {matrix_or_rotation[3, :]}"
             assert is_rotation_matrix(matrix_or_rotation[:3, :3]), \
-                f"Specified matrix does not contain a valid rotation matrix! {matrix_or_rotation[:3, :3]}"
+                f"Specified matrix does not contain a valid rotation matrix! {np.array(matrix_or_rotation[:3, :3])}"
 
             pose[:] = matrix_or_rotation
 
