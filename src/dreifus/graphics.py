@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Union, Tuple, Optional
 
+import numpy as np
+import torch
 from elias.config import Config
 
 from dreifus.vector.vector_base import unpack_nd_params
@@ -51,3 +53,31 @@ class Dimensions(Config, tuple):
     @property
     def y(self) -> int:
         return self.h
+
+
+def homogenize(tensor_or_array: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    """
+    Homogenizes the given tensor or array. Works for arbitrary numbers of spatial dimensions.
+    Assumes that the spatial dimension is the last in the given array.
+
+    Parameters
+    ----------
+        tensor_or_array:
+            A [..., D] array with arbitrary number of leading dimensions and arbitrary size D of the spatial dimension
+
+    Returns
+    -------
+        A [..., (D + 1)] array with the last (spatial) dimension extended by ones
+    """
+
+    if isinstance(tensor_or_array, np.ndarray):
+        ones = np.ones((*tensor_or_array.shape[:-1], 1),
+                       dtype=tensor_or_array.dtype)
+        return np.concatenate([tensor_or_array, ones], axis=-1)
+    elif isinstance(tensor_or_array, torch.Tensor):
+        ones = torch.ones((*tensor_or_array.shape[:-1], 1),
+                          dtype=tensor_or_array.dtype,
+                          device=tensor_or_array.device)
+        return torch.concat([tensor_or_array, ones], dim=-1)
+    else:
+        raise ValueError(f"Unsupported array type: {tensor_or_array.__class__}")
