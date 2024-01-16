@@ -6,6 +6,8 @@ import numpy as np
 # ==========================================================
 # 3D utilities
 # ==========================================================
+from scipy.linalg import expm, norm
+
 from dreifus.vector.vector_base import Vec3TypeX, unpack_3d_params, unpack_nd_params
 
 
@@ -28,6 +30,23 @@ def rotation_matrix_between_vectors(vec1: Vec3TypeX, vec2: Vec3TypeX) -> np.ndar
 
     else:
         return np.eye(3)  # cross of all zeros only occurs on identical directions
+
+
+def rotation_matrix_around_axis(axis: Vec3TypeX, theta: float) -> np.ndarray:
+    """
+    Computes a 3x3 rotation matrix that moves 3D points in space around the specified axis by theta radians.
+
+    Parameters
+    ----------
+        axis: Which axis to rotate around (always goes through origin)
+        theta: How much to rotate in radians. Rotation is applied in clockwise fashion (right-hand rotation)
+
+    Returns
+    -------
+        The 3x3 rotation matrix
+    """
+
+    return expm(np.cross(np.eye(3), axis / norm(axis) * theta))
 
 
 def angle_between_vectors(vec1: Vec3TypeX, vec2: Vec3TypeX) -> float:
