@@ -1,6 +1,15 @@
+from math import atan, tan
 from typing import Union, Optional
 
 import numpy as np
+
+
+def fov_to_focal_length(fov: float, size: float) -> float:
+    return (size / 2) / (tan(fov / 2))
+
+
+def focal_length_to_fov(focal_length: float, size: float) -> float:
+    return 2 * atan(size / (2 * focal_length))
 
 
 class Intrinsics(np.ndarray):
@@ -78,6 +87,13 @@ class Intrinsics(np.ndarray):
     def s(self, value: float):
         self[0, 1] = value
 
+    def get_fovx(self, width: float) -> float:
+        return focal_length_to_fov(self.fx, width)
+
+    def get_fovy(self, height: float) -> float:
+        return focal_length_to_fov(self.fy, height)
+
+
     def rescale(self,
                 scale_factor: float,
                 scale_factor_y: Optional[float] = None,
@@ -120,7 +136,8 @@ class Intrinsics(np.ndarray):
 
     def crop(self,
              crop_left: int = 0,
-             crop_top: int = 0) -> 'Intrinsics':
+             crop_top: int = 0,
+             inplace: bool = True) -> 'Intrinsics':
         """
         When images that correspond to this intrinsics matrix are cropped, the intrinsics should also be adjusted
         to account for the image size change.
@@ -157,10 +174,15 @@ class Intrinsics(np.ndarray):
         # Ensure that the principal point after cropping is still the same point
         # Only cx, cy are affected
 
-        self[0, 2] -= crop_left  # cx
-        self[1, 2] -= crop_top  # cy
+        if inplace:
+            intrinsics = self
+        else:
+            intrinsics = self.copy()
 
-        return self
+        intrinsics[0, 2] -= crop_left  # cx
+        intrinsics[1, 2] -= crop_top  # cy
+
+        return intrinsics
 
     def homogenize(self, invert: bool = False) -> np.ndarray:
         homogenized = np.eye(4)
@@ -173,6 +195,9 @@ class Intrinsics(np.ndarray):
 
     def invert(self) -> np.ndarray:
         return np.linalg.inv(self)
+
+    def numpy(self) -> np.ndarray:
+        return np.array(self)
 
     def __rmatmul__(self, other):
         if isinstance(other, Intrinsics):

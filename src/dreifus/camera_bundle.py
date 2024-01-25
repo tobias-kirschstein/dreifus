@@ -117,11 +117,36 @@ def align_poses(world_to_cam_poses: List[Pose],
         average_up_direction = np.mean(up_directions, axis=0)
         angle = angle_between_vectors(average_up_direction, up)
 
-        # TODO: Here we assume that look direction should be z axis. Correct would be to rotate around look direction
-        rotator = Pose(rotation_matrix_around_axis(look, angle), Vec3(), pose_type=PoseType.CAM_2_CAM)
+        # angle_between_vectors() just returns the unsigned angle between the current up direction and the desired up vector
+        # We do not know whether we need to rotate clockwise or counter-clockwise
+        # The easiest way is to try both rotations and then take the one which aligns better
+
+        # Rotate +angle around look axis
+        rotator_1 = Pose(rotation_matrix_around_axis(look, angle), Vec3(), pose_type=PoseType.CAM_2_CAM)
         # rotator = Pose.from_euler(Vec3(0, 0, angle), pose_type=PoseType.CAM_2_CAM)
-        cam_to_world_poses = [rotator @ cam_pose for cam_pose in cam_to_world_poses]
-        transformation = rotator @ transformation
+        cam_to_world_poses_1 = [rotator_1 @ cam_pose for cam_pose in cam_to_world_poses]
+
+        up_directions_1 = [cam_pose.get_up_direction() for cam_pose in cam_to_world_poses_1]
+        average_up_direction_1 = np.mean(up_directions_1, axis=0)
+        angle_1 = angle_between_vectors(average_up_direction_1, up)
+
+        # Rotate -angle around look axis
+        rotator_2 = Pose(rotation_matrix_around_axis(look, -angle), Vec3(), pose_type=PoseType.CAM_2_CAM)
+        cam_to_world_poses_2 = [rotator_2 @ cam_pose for cam_pose in cam_to_world_poses]
+
+        up_directions_2 = [cam_pose.get_up_direction() for cam_pose in cam_to_world_poses_2]
+        average_up_direction_2 = np.mean(up_directions_2, axis=0)
+        angle_2 = angle_between_vectors(average_up_direction_2, up)
+
+        # Figure out which rotation gives better alignment
+        if angle_1 < angle_2:
+            # Use +angle rotation
+            transformation = rotator_1 @ transformation
+            cam_to_world_poses = cam_to_world_poses_1
+        else:
+            # We rotated into the wrong direction. Use -angle rotation
+            transformation = rotator_2 @ transformation
+            cam_to_world_poses = cam_to_world_poses_2
 
         up_directions_after_alignment = [cam_pose.get_up_direction() for cam_pose in cam_to_world_poses]
         average_up_direction_after_alignment = np.mean(up_directions_after_alignment, axis=0)

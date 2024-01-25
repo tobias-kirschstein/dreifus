@@ -208,12 +208,16 @@ def add_camera_frustum(p: pv.Plotter,
     points_world_up_triangle = points_world[4:]
 
     if image is not None:
-        image_rectangle = pv.Rectangle([points_world_frustum[0][:3],
-                                        points_world_frustum[1][:3],
-                                        points_world_frustum[2][:3],
-                                        points_world_frustum[3][:3]])
+        image_rectangle = pv.Quadrilateral([points_world_frustum[0][:3],
+                                            points_world_frustum[1][:3],
+                                            points_world_frustum[2][:3],
+                                            points_world_frustum[3][:3]])
         # image_file = examples.mapfile
         # tex = pv.read_texture(image_file)
+        if image.dtype != np.uint8:
+            if image.max() < 2:
+                # Assume that image is float, and we have to scale from [0, 1] -> [0, 255]
+                image = (image * 255).clip(0, 255).astype(np.uint8)
         tex = pv.numpy_to_texture(image)
         image_rectangle.active_t_coords = np.array([[0, 1], [1, 1], [1, 0], [0, 0]])
         p.add_mesh(image_rectangle, texture=tex)

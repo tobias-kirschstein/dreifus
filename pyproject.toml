@@ -24,7 +24,7 @@ dependencies = [
     "numpy",
     "scipy",
 #    "torch",
-    "pyvista>=0.38"
+    "pyvista>=0.39"
 ]
 
 [project.optional-dependencies]
