@@ -6,19 +6,21 @@ from scipy.spatial.transform import Rotation as R
 
 from dreifus.camera import CameraCoordinateConvention, PoseType
 from dreifus.matrix.pose_base import is_rotation_matrix
-from dreifus.vector.vector_base import Vec3TypeX, FloatType, unpack_3d_params, Vec3Type
+from dreifus.vector.vector_base import Vec3TypeX, FloatType, unpack_3d_params, Vec3Type, Vec4Type
 from dreifus.vector.vector_numpy import Vec3, Vec4
 
 
 class Pose(np.ndarray):
     camera_coordinate_convention: CameraCoordinateConvention
     pose_type: PoseType
+    _disable_rotation_check: bool = False
 
     def __new__(cls,
                 matrix_or_rotation: Union[np.ndarray, List] = np.eye(4),
                 translation: Optional[Vec3Type] = None,
                 camera_coordinate_convention: CameraCoordinateConvention = CameraCoordinateConvention.OPEN_CV,
-                pose_type: PoseType = PoseType.WORLD_2_CAM):
+                pose_type: PoseType = PoseType.WORLD_2_CAM,
+                disable_rotation_check: bool = False):
         """
         Per default, Poses are assumed to be WORLD_2_CAM poses that transform world coordinates into an OPEN_CV
         camera space.
@@ -39,6 +41,7 @@ class Pose(np.ndarray):
 
         pose.camera_coordinate_convention = camera_coordinate_convention
         pose.pose_type = pose_type
+        pose._disable_rotation_check = disable_rotation_check
 
         if not isinstance(matrix_or_rotation, np.ndarray):
             matrix_or_rotation = np.asarray(matrix_or_rotation)
@@ -48,7 +51,7 @@ class Pose(np.ndarray):
             assert translation is None, "If a full pose is given, no translation should be specified!"
             assert (matrix_or_rotation[3, :] == [0, 0, 0, 1]).all(), \
                 f"Last row of pose must be [0, 0, 0, 1]. Got {matrix_or_rotation[3, :]}"
-            assert is_rotation_matrix(matrix_or_rotation[:3, :3]), \
+            assert disable_rotation_check or is_rotation_matrix(matrix_or_rotation[:3, :3]), \
                 f"Specified matrix does not contain a valid rotation matrix! {np.array(matrix_or_rotation[:3, :3])}"
 
             pose[:] = matrix_or_rotation
@@ -92,6 +95,16 @@ class Pose(np.ndarray):
                        camera_coordinate_convention: CameraCoordinateConvention = CameraCoordinateConvention.OPEN_CV,
                        pose_type: PoseType = PoseType.WORLD_2_CAM) -> 'Pose':
         return Pose(cv2.Rodrigues(rodriguez_vector)[0],
+                    translation,
+                    camera_coordinate_convention=camera_coordinate_convention,
+                    pose_type=pose_type)
+
+    @staticmethod
+    def from_quaternion(quaternion: Vec4Type,
+                        translation: Vec3Type = Vec3(),
+                        camera_coordinate_convention: CameraCoordinateConvention = CameraCoordinateConvention.OPEN_CV,
+                        pose_type: PoseType = PoseType.WORLD_2_CAM) -> 'Pose':
+        return Pose(R.from_quat(quaternion).as_matrix(),
                     translation,
                     camera_coordinate_convention=camera_coordinate_convention,
                     pose_type=pose_type)
@@ -141,7 +154,7 @@ class Pose(np.ndarray):
         return self
 
     def set_rotation_matrix(self, rotation_matrix: np.ndarray):
-        assert is_rotation_matrix(rotation_matrix), \
+        assert self._disable_rotation_check or is_rotation_matrix(rotation_matrix), \
             f"Specified matrix does not contain a valid rotation matrix! {rotation_matrix}"
         self[:3, :3] = rotation_matrix
 
@@ -171,6 +184,7 @@ class Pose(np.ndarray):
         return pose
 
     def invert(self, inplace: bool = False) -> 'Pose':
+        assert not self._disable_rotation_check, "Cannot invert when no proper rotation matrix is used"
         inverted_rotation = self.get_rotation_matrix().T
         inverted_translation = -inverted_rotation @ self.get_translation()
 

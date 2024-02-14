@@ -181,12 +181,15 @@ def add_camera_frustum(p: pv.Plotter,
 
     depth = size * pose.camera_coordinate_convention.forward_direction.sign()
 
-    # if image is not None:
-    #     img_h = image.shape[0]
-    #     img_w = image.shape[1]
+    # Infer image width/height if it is not specifically provided
+    if img_h is None:
+        img_h = 2 * intrinsics.cy if image is None else image.shape[0]
 
-    img_w = 2 * intrinsics.cx if img_w is None else img_w
-    img_h = 2 * intrinsics.cy if img_h is None else img_h
+    if img_w is None:
+        img_w = 2 * intrinsics.cx if image is None else image.shape[1]
+
+    # img_w = 2 * intrinsics.cx if img_w is None else img_w
+    # img_h = 2 * intrinsics.cy if img_h is None else img_h
 
     # Assume that x -> right, y -> down
     p_top_left = Vec4(0, 0, depth, 1)
