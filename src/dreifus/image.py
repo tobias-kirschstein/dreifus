@@ -143,9 +143,9 @@ class Img:
                 # Only if target is uint8, we need to explicitly cast
                 # In all other cases, the conversion is already done by scaling the range
                 if image_class == ImageClass.TORCH:
-                    image = image.round().type(torch.uint8)
+                    image = image.round().clip(0, 255).type(torch.uint8)
                 elif image_class == ImageClass.NUMPY:
-                    image = image.round().astype(np.uint8)
+                    image = np.clip(image.round(), 0, 255).astype(np.uint8)
                 else:
                     raise NotImplementedError(f"uint conversion not implemented for {image_class}")
         else:
@@ -188,3 +188,11 @@ class Img:
             channel_convention=ChannelConvention.CHANNEL_FIRST,
             image_class=ImageClass.TORCH
         )
+
+
+def torch_to_numpy_img(torch_img: torch.Tensor) -> np.ndarray:
+    return Img.from_torch(torch_img.detach().cpu()).to_numpy().img
+
+
+def normalized_torch_to_numpy_img(torch_img: torch.Tensor) -> np.ndarray:
+    return Img.from_normalized_torch(torch_img.detach().cpu()).to_numpy().img
