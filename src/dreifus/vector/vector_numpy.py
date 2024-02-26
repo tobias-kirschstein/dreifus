@@ -66,7 +66,7 @@ def offset_vector_between_line_and_point(offset: Vec3TypeX, direction: Vec3TypeX
     return move
 
 
-def to_homogeneous(points: np.ndarray):
+def to_homogeneous(points: np.ndarray) -> np.ndarray:
     ones = np.ones((*points.shape[:-1], 1), dtype=points.dtype)
     points = np.concatenate([points, ones], axis=-1)
 

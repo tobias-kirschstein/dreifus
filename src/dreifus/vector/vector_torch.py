@@ -5,6 +5,12 @@ import torch
 from dreifus.vector.vector_base import Vec3TypeX, unpack_3d_params, unpack_nd_params
 
 
+def to_homogeneous(points: torch.Tensor) -> torch.Tensor:
+    ones = torch.ones((*points.shape[:-1], 1), dtype=points.dtype)
+    points = torch.concat([points, ones], dim=-1)
+
+    return points
+
 class TorchVec3(torch.Tensor):
     def __new__(cls,
                 x: Optional[Vec3TypeX] = None,
