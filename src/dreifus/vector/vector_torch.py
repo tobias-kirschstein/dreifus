@@ -6,7 +6,7 @@ from dreifus.vector.vector_base import Vec3TypeX, unpack_3d_params, unpack_nd_pa
 
 
 def to_homogeneous(points: torch.Tensor) -> torch.Tensor:
-    ones = torch.ones((*points.shape[:-1], 1), dtype=points.dtype)
+    ones = torch.ones((*points.shape[:-1], 1), dtype=points.dtype, device=points.device)
     points = torch.concat([points, ones], dim=-1)
 
     return points
