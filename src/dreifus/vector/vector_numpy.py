@@ -95,11 +95,11 @@ class Vec2(np.ndarray):
 
     @property
     def x(self) -> float:
-        return self[0]
+        return self[0].item()
 
     @property
     def y(self) -> float:
-        return self[1]
+        return self[1].item()
 
     @x.setter
     def x(self, x: float):
@@ -135,15 +135,15 @@ class Vec3(np.ndarray):
 
     @property
     def x(self) -> float:
-        return self[0]
+        return self[0].item()
 
     @property
     def y(self) -> float:
-        return self[1]
+        return self[1].item()
 
     @property
     def z(self) -> float:
-        return self[2]
+        return self[2].item()
 
     @x.setter
     def x(self, x: float):
@@ -192,19 +192,19 @@ class Vec4(np.ndarray):
 
     @property
     def x(self) -> float:
-        return self[0]
+        return self[0].item()
 
     @property
     def y(self) -> float:
-        return self[1]
+        return self[1].item()
 
     @property
     def z(self) -> float:
-        return self[2]
+        return self[2].item()
 
     @property
     def w(self) -> float:
-        return self[3]
+        return self[3].item()
 
     @x.setter
     def x(self, x: float):
