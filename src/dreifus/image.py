@@ -196,3 +196,26 @@ def torch_to_numpy_img(torch_img: torch.Tensor) -> np.ndarray:
 
 def normalized_torch_to_numpy_img(torch_img: torch.Tensor) -> np.ndarray:
     return Img.from_normalized_torch(torch_img.detach().cpu()).to_numpy().img
+
+
+def perform_alpha_blending(img: np.ndarray, bg: np.ndarray, alpha_map: Optional[np.ndarray] = None) -> np.ndarray:
+    assert alpha_map is not None or img.shape[-1] == 4, 'If no alpha map is provided, image must have an alpha channel'
+    assert img.dtype == np.uint8
+    assert bg.dtype == np.uint8
+    assert alpha_map is None or alpha_map.dtype == np.uint8
+
+    if len(bg.shape) != len(img.shape):
+        for i in range(len(img.shape) - len(bg.shape)):
+            bg = np.expand_dims(bg, axis=-2)  # Spawn new axis to cover spatial dimensions
+
+    if alpha_map is None:
+        alpha_map = img[..., [-1]]
+        img = img[..., :-1]
+    alpha_map = alpha_map / 255
+    img = img / 255
+    bg = bg / 255
+
+    img = alpha_map * img + (1 - alpha_map) * bg
+    img = np.clip(img * 255, 0, 255).astype(np.uint8)
+
+    return img

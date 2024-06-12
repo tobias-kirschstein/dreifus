@@ -1,11 +1,10 @@
 from typing import Union, Tuple, List, Optional
 
 import numpy as np
-import torch
 
-Vec4Type = Union[Tuple[float, float, float, float], np.ndarray, torch.Tensor, 'Vec4', 'TorchVec4']
+Vec4Type = Union[Tuple[float, float, float, float], np.ndarray, 'torch.Tensor', 'Vec4', 'TorchVec4']
 Vec4TypeX = Union[float, Vec4Type]  # Can be either the first coordinate ('x') or a full vector
-Vec3Type = Union[Tuple[float, float, float], np.ndarray, List[float], torch.Tensor, 'Vec3', 'TorchVec3']
+Vec3Type = Union[Tuple[float, float, float], np.ndarray, List[float], 'torch.Tensor', 'Vec3', 'TorchVec3']
 Vec3TypeX = Union[float, Vec3Type]  # Can be either the first coordinate ('x') or a full vector
 FloatType = Union[float, np.ndarray]  # Can be single element array (as a result of a numpy operation)
 

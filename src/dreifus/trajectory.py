@@ -26,7 +26,7 @@ def point_around_axis(theta: float,
     """
 
     axis = Vec3(axis)
-    non_parallel = Vec3(0, 1, 0) if (axis == Vec3(1, 0, 0)).all() else Vec3(1, 0, 0)
+    non_parallel = Vec3(0, 1, 0) if axis == Vec3(1, 0, 0) else Vec3(1, 0, 0)
     v = axis.cross(non_parallel).normalize()
     v_rotated = cos(theta) * v + sin(theta) * (np.cross(axis, v)) + (1 - cos(theta)) * axis * (np.dot(axis, v))
 

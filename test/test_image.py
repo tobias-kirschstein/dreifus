@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 import torch
 
-from dreifus.image import Img, ImageClass, ImageRange, ChannelConvention
+from dreifus.image import Img, ImageClass, ImageRange, ChannelConvention, perform_alpha_blending
 
 
 class ImageTest(TestCase):
@@ -181,3 +181,32 @@ class ImageTest(TestCase):
         torch_image = self._get_torch_image()
         image = Img(torch_image, ImageRange.FLOAT, ChannelConvention.CHANNEL_FIRST)
         assert image.image_class == ImageClass.TORCH
+
+    def test_alpha_blending(self):
+        img = np.random.randint(0, 255, size=(256, 256, 3), dtype=np.uint8)
+        bg = np.array([255, 255, 255], dtype=np.uint8)
+        alpha_map = np.random.randint(0, 255, size=(256, 256, 3), dtype=np.uint8)
+
+        result_img = perform_alpha_blending(img, bg, alpha_map)
+        self.assertEqual(result_img.shape, img.shape)
+
+        # Alpha as part of image
+        img = np.random.randint(0, 255, size=(256, 256, 4), dtype=np.uint8)
+        result_img = perform_alpha_blending(img, bg)
+        self.assertEqual(result_img.shape, alpha_map.shape)
+
+        # batched
+        img = np.random.randint(0, 255, size=(7, 256, 256, 3), dtype=np.uint8)
+        bg = np.array([255, 255, 255], dtype=np.uint8)
+        alpha_map = np.random.randint(0, 255, size=(7, 256, 256, 3), dtype=np.uint8)
+
+        result_img = perform_alpha_blending(img, bg, alpha_map)
+        self.assertEqual(result_img.shape, img.shape)
+
+        img = np.random.randint(0, 255, size=(7, 256, 256, 4), dtype=np.uint8)
+        result_img = perform_alpha_blending(img, bg)
+        self.assertEqual(result_img.shape, alpha_map.shape)
+
+
+
+
