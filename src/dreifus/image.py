@@ -1,6 +1,8 @@
 from enum import Enum, auto
-from typing import Union, Optional, Tuple
+from math import ceil, sqrt, floor
+from typing import Union, Optional, Tuple, List
 
+import cv2
 import numpy as np
 import torch
 
@@ -219,3 +221,67 @@ def perform_alpha_blending(img: np.ndarray, bg: np.ndarray, alpha_map: Optional[
     img = np.clip(img * 255, 0, 255).astype(np.uint8)
 
     return img
+
+
+def create_image_mosaic(images: List[np.ndarray],
+                        nrows: Optional[int] = None,
+                        ncols: Optional[int] = None,
+                        max_width: Optional[int] = None,
+                        max_height: Optional[int] = None) -> np.ndarray:
+    """
+    Creates a single ROWSxCOLUMNS numpy image from an image list.
+    The given images are expected to have the same resolution.
+
+    Parameters
+    ----------
+        images: (H x W x 3 as np.uint8 in [0, 255])
+            the images to stitch together
+        nrows:
+            how many rows should be in the mosaic. If None, it is automatically inferred
+        ncols:
+            how many columns should be in the mosaic. If None, it is automatically inferred
+        max_width:
+            Optionally can resize the final mosaic to not exceed this width
+        max_height:
+            Optionally can resize the final mosaic to not exceed this height
+
+    Returns
+    -------
+        A single numpy image containing all the given images in a mosaic fashion.
+    """
+
+    n_images = len(images)
+
+    H, W, C = images[0].shape
+
+    if nrows is None and ncols is None:
+        # Attempt to create a square mosaic
+        nrows = int(ceil(sqrt(n_images)))
+        ncols = int(ceil(n_images / nrows))
+    elif nrows is None:
+        # Infer nrows from specified number of ncols
+        nrows = int(ceil(n_images / ncols))
+    elif ncols is None:
+        # Infer ncols from specified number of nrows
+        ncols = int(ceil(n_images / nrows))
+
+    scale_factor = 1.
+    if max_width is not None:
+        scale_factor = min(scale_factor, max_width / (ncols * W))
+    if max_height is not None:
+        scale_factor = min(scale_factor, max_height / (nrows * H))
+
+    tile_width = min(int(floor(W * scale_factor / nrows)), W)
+    tile_height = min(int(floor(H * scale_factor / nrows)), H)
+
+    tiled_image = np.ones((tile_height * nrows, tile_width * ncols, C), dtype=np.uint8) * 255
+    for i, image in enumerate(images):
+        row = int(floor(i / ncols))
+        col = i % ncols
+        resized_image = cv2.resize(image, (tile_width, tile_height))
+        if len(resized_image.shape) == 2:
+            resized_image = resized_image[..., None]
+        tiled_image[row * tile_height: (row + 1) * tile_height,
+        col * tile_width: (col + 1) * tile_width] = resized_image
+
+    return tiled_image
