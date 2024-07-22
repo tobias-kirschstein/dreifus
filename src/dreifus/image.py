@@ -271,8 +271,8 @@ def create_image_mosaic(images: List[np.ndarray],
     if max_height is not None:
         scale_factor = min(scale_factor, max_height / (nrows * H))
 
-    tile_width = min(int(floor(W * scale_factor / nrows)), W)
-    tile_height = min(int(floor(H * scale_factor / nrows)), H)
+    tile_width = min(int(floor(W * scale_factor)), W)
+    tile_height = min(int(floor(H * scale_factor)), H)
 
     tiled_image = np.ones((tile_height * nrows, tile_width * ncols, C), dtype=np.uint8) * 255
     for i, image in enumerate(images):
