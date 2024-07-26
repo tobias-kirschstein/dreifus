@@ -7,7 +7,7 @@ import torch
 def is_rotation_matrix(matrix: np.ndarray):
     # Taken from https://stackoverflow.com/questions/53808503/how-to-test-if-a-matrix-is-a-rotation-matrix
     I = np.identity(matrix.shape[0])
-    return np.allclose((np.matmul(matrix, matrix.T)), I, atol=1e-5) and (
+    return np.allclose((np.dot(matrix, matrix.T)), I, atol=1e-5) and (
         np.isclose(np.linalg.det(matrix), 1, atol=1e-8))
 
 def ensure_homogenized(vector_or_matrix: Union[torch.Tensor, np.ndarray]):
