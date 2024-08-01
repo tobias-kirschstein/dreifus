@@ -2,7 +2,6 @@ import math
 from typing import Optional, Tuple, Union, List
 
 import numpy as np
-
 # ==========================================================
 # 3D utilities
 # ==========================================================
@@ -80,8 +79,9 @@ def to_homogeneous(points: np.ndarray) -> np.ndarray:
 class Vec2(np.ndarray):
     def __new__(cls,
                 x: Optional[Union[float, Tuple[float, float], List[float], np.ndarray]] = None,
-                y: Optional[float] = None) -> 'Vec2':
-        vec2 = super().__new__(cls, (2,), dtype=np.float32)
+                y: Optional[float] = None,
+                dtype=np.float32) -> 'Vec2':
+        vec2 = super().__new__(cls, (2,), dtype=dtype)
         x, y = unpack_nd_params(2, x, y, default=0)
         # try:
         #     assert len(x) == 2, "Passed list must contain exactly 3 values"
@@ -120,9 +120,10 @@ class Vec3(np.ndarray):
     def __new__(cls,
                 x: Optional[Vec3TypeX] = None,
                 y: Optional[float] = None,
-                z: Optional[float] = None) -> 'Vec3':
+                z: Optional[float] = None,
+                dtype=np.float32) -> 'Vec3':
         # TODO: Allow no arguments -> 0 vector
-        vec3 = super().__new__(cls, (3,), dtype=np.float32)
+        vec3 = super().__new__(cls, (3,), dtype=dtype)
         x, y, z = unpack_3d_params(x, y, z, default=0)
         vec3[:] = [x, y, z]
         return vec3
@@ -184,8 +185,9 @@ class Vec4(np.ndarray):
                 x: Union[float, Tuple[float, float, float, float], np.ndarray, 'Vec4', 'Vec3'],
                 y: Optional[float] = None,
                 z: Optional[float] = None,
-                w: Optional[float] = None) -> 'Vec4':
-        vec4 = super().__new__(cls, (4,), dtype=np.float32)
+                w: Optional[float] = None,
+                dtype=np.float32) -> 'Vec4':
+        vec4 = super().__new__(cls, (4,), dtype=dtype)
         x, y, z, w = unpack_nd_params(4, x, y, z, w)
         vec4[:] = [x, y, z, w]
         return vec4
