@@ -110,7 +110,7 @@ class Pose(np.ndarray):
                     pose_type=pose_type)
 
     def get_rotation_matrix(self) -> np.ndarray:
-        return self[:3, :3]
+        return np.asarray(self[:3, :3])
 
     def get_euler_angles(self, order: str) -> Vec3:
         return Vec3(R.from_matrix(self.get_rotation_matrix()).as_euler(order))
