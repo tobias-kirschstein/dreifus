@@ -223,7 +223,7 @@ def add_camera_frustum(p: pv.Plotter,
                 image = (image * 255).clip(0, 255).astype(np.uint8)
         tex = pv.numpy_to_texture(image)
         image_rectangle.active_t_coords = np.array([[0, 1], [1, 1], [1, 0], [0, 0]])
-        p.add_mesh(image_rectangle, texture=tex)
+        p.add_mesh(image_rectangle, texture=tex, lighting=False)
 
     # Draw lines from rectangle corners to camera origin
     for i_point, point_world in enumerate(points_world_frustum):
