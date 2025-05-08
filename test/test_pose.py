@@ -1,16 +1,30 @@
-from typing import Union, Type
+import pickle
+from typing import Union, Type, List
 from unittest import TestCase
 
 import numpy as np
 import torch
 from numpy.ma.testutils import assert_array_almost_equal, assert_array_equal
 from scipy.spatial.transform import Rotation as R
+from torch.utils.data import DataLoader, Dataset
 
 from dreifus.camera import CameraCoordinateConvention, PoseType
 from dreifus.matrix.intrinsics_numpy import Intrinsics
 from dreifus.matrix.intrinsics_torch import TorchIntrinsics
 from dreifus.matrix.pose_numpy import Pose
 from dreifus.matrix.pose_torch import TorchPose
+from dreifus.vector import Vec3
+
+
+class PoseDataset(Dataset):
+    def __getitem__(self, item):
+        return Pose()
+
+    def __len__(self):
+        return 2
+
+    def collate_fn(self, samples: List[Pose]):
+        return samples
 
 
 class PoseTest(TestCase):
@@ -94,3 +108,23 @@ class PoseTest(TestCase):
 
     def test_torch_pose(self):
         self._test_pose(TorchPose)
+
+    def test_serialize_pose(self):
+        pose = Pose.from_euler((np.pi, 0, 0), Vec3(0, 0, 0), camera_coordinate_convention=CameraCoordinateConvention.OPEN_GL, pose_type=PoseType.CAM_2_WORLD)
+        pose_serialized = pickle.dumps(pose)
+        pose_deserialized = pickle.loads(pose_serialized)
+
+        self.assertTrue((pose == pose_deserialized).all())
+        for k in pose.__dict__.keys():
+            self.assertEqual(getattr(pose, k), getattr(pose_deserialized, k))
+
+        pose_deserialized.change_camera_coordinate_convention(CameraCoordinateConvention.PYTORCH_3D)
+        pose_deserialized.change_pose_type(PoseType.WORLD_2_CAM)
+
+        dataset = PoseDataset()
+        dataloader = DataLoader(dataset, batch_size=1, collate_fn=dataset.collate_fn, num_workers=2)
+        iter_dataloader = iter(dataloader)
+        batch = next(iter_dataloader)
+        pose = batch[0]
+        pose.change_pose_type(PoseType.CAM_2_WORLD)
+        pose.change_camera_coordinate_convention(CameraCoordinateConvention.PYTORCH_3D)

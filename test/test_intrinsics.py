@@ -1,3 +1,4 @@
+import pickle
 from typing import Type, Union
 from unittest import TestCase
 
@@ -43,3 +44,13 @@ class IntrinsicsTest(TestCase):
 
     def test_torch_intrinsics(self):
         self._test_intrinsics(TorchIntrinsics)
+
+    def test_serialize_intrinsics(self):
+        intrinsics = Intrinsics(123, 456, 789, 111)
+        intrinsics_serialized = pickle.dumps(intrinsics)
+        intrinsics_deserialized = pickle.loads(intrinsics_serialized)
+
+        self.assertTrue((intrinsics == intrinsics_deserialized).all())
+        for k in intrinsics.__dict__.keys():
+            self.assertEqual(getattr(intrinsics, k), getattr(intrinsics_deserialized, k))
+        intrinsics_deserialized.rescale(512)

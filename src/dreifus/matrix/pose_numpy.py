@@ -431,3 +431,21 @@ class Pose(np.ndarray):
                  f" > camera_coordinate_convention: {self.camera_coordinate_convention.name}\n" \
                  f" > pose_type: {self.pose_type.name}"
         return string
+
+    def __reduce__(self):
+        # To make proper pickling of Pose() objects work, we have to extend Numpy's serialization/deserialization scheme
+
+        # Taken from: https://stackoverflow.com/questions/26598109/preserve-custom-attributes-when-pickling-subclass-of-numpy-array
+        # Get the parent's __reduce__ tuple
+        pickled_state = super(Pose, self).__reduce__()
+        # Add all additional attributes to the pickled state (contained in self.__dict__9
+        new_state = pickled_state[2] + (self.__dict__,)
+        # Return a tuple that replaces the parent's __setstate__ tuple with our own
+        return (pickled_state[0], pickled_state[1], new_state)
+
+    def __setstate__(self, state):
+        # Extract all additional attributes from the state (__dict__) and set it on the deserialized Pose() object
+        for k, v in state[-1].items():
+            setattr(self, k, v)
+        # Call the parent's __setstate__ with the other tuple elements.
+        super(Pose, self).__setstate__(state[0:-1])
