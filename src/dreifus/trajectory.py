@@ -1,5 +1,5 @@
 from math import cos, sin
-from typing import Optional, List
+from typing import Optional, List, Callable
 
 import numpy as np
 
@@ -41,7 +41,8 @@ def circle_around_axis(n_poses: int,
                        distance_end: Optional[float] = None,
                        theta_from: float = 0,
                        theta_to: float = 2 * np.pi,
-                       look_at: Vec3 = Vec3(0, 0, 0)) -> List[Pose]:
+                       look_at: Vec3 = Vec3(0, 0, 0),
+                       ease_fn: Callable[[float], float] = lambda alpha: alpha) -> List[Pose]:
     """
     Computes `n_poses` many camera poses (cam2world) that circle with distance `distance` around the specified `axis`
     that is moved by `move`.
@@ -70,6 +71,9 @@ def circle_around_axis(n_poses: int,
             orientation of the last pose
         look_at:
             all circle poses will look at the specified point in space. Per default, this is the origin
+        ease_fn:
+            A function that determines how steps in the trajectory map onto angles. The default ease_fn is a linear mapping leading to a circular trajectory
+            with constant speed.
     """
 
     if distance_end is None:
@@ -81,6 +85,7 @@ def circle_around_axis(n_poses: int,
     poses = []
     for i_pose in range(n_poses):
         alpha = i_pose / n_poses
+        alpha = ease_fn(alpha)
         theta = theta_from + alpha * (theta_to - theta_from)
         distance = distance_start + alpha * (distance_end - distance_start)
         location = distance * point_around_axis(theta, axis=axis)
