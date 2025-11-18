@@ -86,7 +86,7 @@ def circle_around_axis(n_poses: int,
     for i_pose in range(n_poses):
         alpha = i_pose / n_poses
         alpha = ease_fn(alpha)
-        theta = theta_from + alpha * (theta_from - theta_to)
+        theta = theta_from + alpha * (theta_to - theta_from)
         distance = distance_start + alpha * (distance_end - distance_start)
         location = distance * point_around_axis(theta, axis=axis)
 
