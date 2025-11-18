@@ -1,5 +1,5 @@
 from math import cos, sin
-from typing import Optional, List
+from typing import Optional, List, Callable
 
 import numpy as np
 
